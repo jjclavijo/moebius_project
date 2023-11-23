@@ -74,3 +74,19 @@ fn generate_temporal_series(base_point: GeographicPoint, num_points: usize) -> V
         })
         .collect()
 }
+
+
+// Define a Möbius aligned transformation struct
+#[derive(Debug, Clone, Copy)]
+struct MobiusAlignedTransformation {
+    base_transform: MobiusTransformation,
+    noise_scale: MobiusTransformation,
+}
+
+impl MobiusAlignedTransformation {
+    fn apply(&self, z: Complex<f64>) -> Complex<f64> {
+        let perturbed_transform = self.base_transform.clone() + self.noise_scale;
+
+        perturbed_transform.apply(z)
+    }
+}
