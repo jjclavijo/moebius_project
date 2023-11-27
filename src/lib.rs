@@ -70,7 +70,7 @@ impl GeographicPoint {
 }
 
 // Define a Möbius transformation struct
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct MobiusTransformation {
     a: Complex<f64>,
     b: Complex<f64>,
@@ -107,15 +107,31 @@ impl MobiusTransformation {
         w2: Complex<f64>,
         w3: Complex<f64>,
     ) -> MobiusTransformation {
-        let det_a = determinant(z1 * w1, w1, 1.0.into(), z2 * w2, w2, 1.0.into(), z3 * w3, w3, 1.0.into());
-        let det_b = determinant(z1 * w1, z1, w1, z2 * w2, z2, w2, z3 * w3, z3, w3);
-        let det_c = determinant(z1, w1, 1.0.into(), z2, w2, 1.0.into(), z3, w3, 1.0.into());
-        let det_d = determinant(z1 * w1, z1, 1.0.into(), z2 * w2, z2, 1.0.into(), z3 * w3, z3, 1.0.into());
 
-        let a = det_a / det_c;
-        let b = det_b / det_c;
-        let c = det_c / det_c;
-        let d = det_d / det_c;
+        // Esta cuenta es la misma que la del determinante.
+        // let t = (w1 - w2) * (z1 - z3);
+        // let k = (w1 - w3) * (z1 - z2);
+
+        // let a = t * w3 - k * w2;
+        // let b = k * w2 * z3 - t * w3 * z2;
+        // let c = t - k;
+        // let d = k * z3 - t * z2;
+
+        let a = determinant(z1 * w1, w1, 1.0.into(),
+                            z2 * w2, w2, 1.0.into(), 
+                            z3 * w3, w3, 1.0.into());
+
+        let b = determinant(z1 * w1, z1, w1, 
+                            z2 * w2, z2, w2, 
+                            z3 * w3, z3, w3);
+
+        let c = determinant(z1, w1, 1.0.into(),
+                            z2, w2, 1.0.into(),
+                            z3, w3, 1.0.into());
+
+        let d = determinant(z1 * w1, z1, 1.0.into(),
+                            z2 * w2, z2, 1.0.into(),
+                            z3 * w3, z3, 1.0.into());
 
         MobiusTransformation { a, b, c, d }
     }
@@ -134,11 +150,32 @@ impl MobiusTransformation {
         let d = self.d + other.d;
         MobiusTransformation { a, b, c, d }
     }
+
+    fn normalizar(self) -> MobiusTransformation {
+        let n = self.a;
+
+        MobiusTransformation::new( self.a / n, self.b / n,
+                                   self.c / n, self.d / n )
+
+    }
+
+    fn new(a: Complex<f64>, b: Complex<f64>, 
+           c: Complex<f64>, d: Complex<f64>) -> MobiusTransformation {
+        MobiusTransformation { a, b, c, d }
+    }
     
 }
 
 
 fn determinant(a: Complex<f64>, b: Complex<f64>, c: Complex<f64>, d: Complex<f64>, e: Complex<f64>, f: Complex<f64>, g: Complex<f64>, h: Complex<f64>, i: Complex<f64>) -> Complex<f64> {
+    // a b c
+    // d e f
+    // g h i
+    
+    //
+    // Determinante con las matrices menores.
+    //
+   
     a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g)
 }
 
@@ -170,27 +207,6 @@ fn compute_antipodal_point(point: GeographicPoint) -> GeographicPoint {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use rand_distr::{Normal};
-    // use rand::{Rng,SeedableRng};
-    // use rand_chacha::ChaCha8Rng;
-
-    #[test]
-    fn test_mobius_transformation() {
-        let base_point = GeographicPoint {
-            latitude: 45.0,
-            longitude: 30.0,
-        };
-
-        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude,base_point.longitude, 1.0);
-
-        // Assuming the perturbations are applied correctly, test a transformation's output
-        let complex_input = Complex::new(3.0, 4.0);
-        let transformed_output = mobius_transformation.apply(complex_input);
-
-        // Example assertion: Check if the output is within an acceptable range or condition
-        assert!((transformed_output.re).abs() < 1e6);
-        assert!((transformed_output.im).abs() < 1e6);
-    }
 
     #[test]
     fn test_antipodal_transformation() {
@@ -213,6 +229,11 @@ mod tests {
 
         //
         let transformed_output_a = mobius_transformation_a.apply(complex_input);
+
+
+        println!("--- INICIO: Debug Antipoda y Contragiro ---");
+        println!("|");
+
         println!("{:?}",complex_input);
         println!("{:?}",base_point);
         println!("{:?}",antipodal_point);
@@ -223,9 +244,60 @@ mod tests {
         println!("{:?}",transformed_output);
         println!("{:?}",transformed_output_a);
 
+        println!("|");
+        println!("--- FIN: Debug Antipoda y Contragiro ---");
+
         // Example assertion: Check if the output is within an acceptable range or condition
-        assert!(( (transformed_output.re) - (transformed_output_a.re) ).abs() < 1e-6);
-        assert!(( (transformed_output.im) - (transformed_output_a.im) ).abs() < 1e-6);
+        assert!(( transformed_output - transformed_output_a ).norm() < 1e-6);
+    }
+
+    #[test]
+    fn test_polo_vs_tres_puntos() {
+        let base_point = GeographicPoint {
+            latitude: 45.0,
+            longitude: 30.0,
+        };
+
+        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude,base_point.longitude, 1.0);
+
+        let complex_inputs : Vec<Complex<f64>> = vec![Complex::new(1.0, -4.0),
+                                                    Complex::new(3.0, 4.0),
+                                                    Complex::new(-3.0, 8.0)];
+
+        let transformed_output : Vec<Complex<f64>> = complex_inputs.iter().map(|&i| mobius_transformation.apply(i)).collect();
+
+        let a: Complex<f64> = Complex::new(f64::NAN,f64::NAN);
+        let b: Complex<f64> = Complex::new(f64::NAN,f64::NAN);
+        let c: Complex<f64> = Complex::new(f64::NAN,f64::NAN);
+        let d: Complex<f64> = Complex::new(f64::NAN,f64::NAN);
+
+        let mut other_mobius_transformation = MobiusTransformation { a, b, c, d };
+
+        if let [z1,z2,z3] = complex_inputs[..] {
+            if let [w1,w2,w3] = transformed_output[..] {
+                other_mobius_transformation = MobiusTransformation::from_pairs(z1,z2,z3,w1,w2,w3);
+            }
+        }
+
+        println!("--- INICIO: Debug Polos vs Tres Puntos ---");
+        println!("|");
+        println!("{:?}",other_mobius_transformation.normalizar());
+        println!("{:?}",mobius_transformation.normalizar());
+        println!("|");
+        println!("--- FIN: Debug Polos vs Tres Puntos ---");
+
+        assert!( (other_mobius_transformation.normalizar().a 
+                      - mobius_transformation.normalizar().a).norm() < 1e-6);
+
+        assert!( (other_mobius_transformation.normalizar().b 
+                      - mobius_transformation.normalizar().b).norm() < 1e-6);
+
+        assert!( (other_mobius_transformation.normalizar().c 
+                      - mobius_transformation.normalizar().c).norm() < 1e-6);
+
+        assert!( (other_mobius_transformation.normalizar().d 
+                      - mobius_transformation.normalizar().d).norm() < 1e-6);
+
     }
 
 }
