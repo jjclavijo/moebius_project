@@ -1,92 +1,105 @@
-// Function to create a Möbius transformation from a geographic point and perturbations
-fn create_mobius_transformation(
-    base_point: GeographicPoint,
-    perturbations: Vec<(f64, f64, f64, f64)>,
-) -> Vec<MobiusTransformation> {
-    perturbations
-        .into_iter()
-        .map(|perturbation| {
-            let base_transform = MobiusTransformation::from_pole(
-                base_point.latitude.into(),
-                base_point.longitude.into(),
-                1.0,
-            );
+use crate::geo::GeographicPoint;
+// use crate::mobius::MobiusTransformation;
+use num_complex::Complex;
+use num_traits::Float;
 
-            let a = base_transform.a + perturbation.0;
-            let b = base_transform.b + perturbation.1;
-            let c = base_transform.c + perturbation.2;
-            let d = base_transform.d + perturbation.3;
-
-            MobiusTransformation { a, b, c, d }
-        })
-        .collect()
+// Define the trait
+trait Process {
+    fn apply(&self, points: Vec<GeographicPoint>) -> Vec<Vec<GeographicPoint>>;
 }
 
-// Function to create a Möbius aligned transformation from a geographic point and noise scale
-fn create_mobius_aligned_transformation(
-    base_point: GeographicPoint,
-    noise_scale: f64,
-    num_points: usize,
-) -> Vec<MobiusAlignedTransformation> {
-    let base_transform = MobiusTransformation::from_pole(
-        base_point.latitude.into(),
-        base_point.longitude.into(),
-        1.0,
-    );
+// Macro to generate the process structs with named inputs and a transformation function
+macro_rules! define_process {
+    ($struct_name:ident,$transformation:ident, $($input:ident : $T:ty),+ ) => {
+        pub struct $struct_name {
+            $( $input: Vec<$T>, )+
+            $transformation: fn(&GeographicPoint, $($T),+) -> GeographicPoint,
+        }
 
-    let normal = Normal::new(0.0, noise_scale).unwrap();
-    let mut rng = ChaCha8Rng::seed_from_u64(42);
+        impl Process for $struct_name
+        {
+            fn apply(&self, points: Vec<GeographicPoint>) -> Vec<Vec<GeographicPoint>> {
+                let mut transformations = Vec::new();
 
-    let perturbations: Vec<MobiusTransformation> = (0..num_points)
-        .map(|_| {
-            let perturbation = (
-                Complex::new(rng.sample(&normal), 0.0),
-                Complex::new(rng.sample(&normal), 0.0),
-                Complex::new(rng.sample(&normal), 0.0),
-                Complex::new(rng.sample(&normal), 0.0),
-            );
+                let inputs_count = {
+                    let mut count = 0;
+                    $(
+                        count = self.$input.len();
+                    )+
+                    count
+                };
 
-            MobiusTransformation {
-                a: perturbation.0,
-                b: perturbation.1,
-                c: perturbation.2,
-                d: perturbation.3,
+                for i in 0..inputs_count {
+                    let mut transformed_points = Vec::new();
+
+                    $(
+                        let $input = self.$input[i];
+                    )+
+
+                    for point in &points {
+                        let transformed_point = (self.$transformation)(point, $($input),+);
+                        transformed_points.push(transformed_point);
+                    }
+
+                    transformations.push(transformed_points);
+                }
+
+                transformations
             }
-        })
-        .collect();
-
-    perturbations
-        .into_iter()
-        .map(|perturbation| MobiusAlignedTransformation {
-            base_transform: base_transform.clone(),
-            noise_scale: perturbation,
-        })
-        .collect()
+        }
+    };
 }
 
-// Function to generate a temporal series of points
-fn generate_temporal_series(base_point: GeographicPoint, num_points: usize) -> Vec<GeographicPoint> {
-    let mut rng = rand::thread_rng();
-    (0..num_points)
-        .map(|_| GeographicPoint {
-            latitude: base_point.latitude + rng.gen_range(-5.0..5.0),
-            longitude: base_point.longitude + rng.gen_range(-5.0..5.0),
-        })
-        .collect()
+// Generate structs with 4 named inputs
+define_process!(Process4, Transformation, Input1: f64, Input2: f64, Input3: f64, Input4: f64);
+
+// Example transformation function that uses named inputs
+fn example_transformation(
+    point: &GeographicPoint,
+    input1: f64,
+    input2: f64,
+    input3: f64,
+    input4: f64,
+) -> GeographicPoint
+{
+    // Your transformation logic here using named inputs
+    // Example logic - summing up named inputs to the point coordinates
+    let lat = point.latitude + input1;
+    let lon = point.longitude + input2;
+
+    GeographicPoint::new(lat,lon)
 }
 
+// Lo que sigue: Definir las transformaciones para los dos tipos de procesos
+// que buscamos.
 
-// Define a Möbius aligned transformation struct
-#[derive(Debug, Clone, Copy)]
-struct MobiusAlignedTransformation {
-    base_transform: MobiusTransformation,
-    noise_scale: MobiusTransformation,
-}
 
-impl MobiusAlignedTransformation {
-    fn apply(&self, z: Complex<f64>) -> Complex<f64> {
-        let perturbed_transform = self.base_transform.clone() + self.noise_scale;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        perturbed_transform.apply(z)
+    #[test]
+    fn main() {
+        // Example usage of Process4 struct
+        let process = Process4 {
+            Input1: vec![1.0, 2.0, 3.0],
+            Input2: vec![4.0, 5.0, 6.0],
+            Input3: vec![7.0, 8.0, 9.0],
+            Input4: vec![10.0, 11.0, 12.0],
+            Transformation: (example_transformation)
+        };
+
+        let points = vec![
+            GeographicPoint::new(0.0, 0.0),
+            GeographicPoint::new(1.0, 1.0),
+            GeographicPoint::new(2.0, 2.0),
+        ];
+
+        let result = process.apply(points);
+        println!("{:?}", result);
+        assert!(false)
     }
 }
+
+
+
