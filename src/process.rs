@@ -3,24 +3,35 @@ use crate::geo::GeographicPoint;
 use num_complex::Complex;
 use num_traits::Float;
 
-// Define the trait
+// Definir el trait
+// El trait de proceso tiene una función de aplicación que aplica la 
+// transformación con la que el proceso se inicializó a una serie de 
+// puntos geográficos.
+
 trait Process {
     fn apply(&self, points: Vec<GeographicPoint>) -> Vec<Vec<GeographicPoint>>;
 }
 
 // Macro to generate the process structs with named inputs and a transformation function
 macro_rules! define_process {
+    // Nombre del struct, Transformación a aplicar, Nombres de las entradas y tipo.
     ($struct_name:ident,$transformation:ident, $($input:ident : $T:ty),+ ) => {
+        // Crea un struct
         pub struct $struct_name {
+            // con las inputs, que son los procesos de ruido 
             $( $input: Vec<$T>, )+
+            // Y la transformación que aplicará
             $transformation: fn(&GeographicPoint, $($T),+) -> GeographicPoint,
         }
 
+        // Implementa el trait process
         impl Process for $struct_name
         {
+            // La aplicación de la transformaciòn
             fn apply(&self, points: Vec<GeographicPoint>) -> Vec<Vec<GeographicPoint>> {
                 let mut transformations = Vec::new();
 
+                // toma 
                 let inputs_count = {
                     let mut count = 0;
                     $(
