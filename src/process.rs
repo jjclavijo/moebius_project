@@ -29,10 +29,11 @@ macro_rules! define_process {
         {
             // La aplicación de la transformaciòn
             fn apply(&self, points: Vec<GeographicPoint>) -> Vec<Vec<GeographicPoint>> {
-                let mut transformations = Vec::new();
 
-                // toma 
-                let inputs_count = {
+                let mut instants = Vec::new();
+
+                // toma la longitud de la entrada.
+                let instant_count = {
                     let mut count = 0;
                     $(
                         count = self.$input.len();
@@ -40,22 +41,28 @@ macro_rules! define_process {
                     count
                 };
 
-                for i in 0..inputs_count {
+                // para cada indice de la entrada
+                for i in 0..instant_count {
+                    
+                    
                     let mut transformed_points = Vec::new();
-
+                    
+                    //toma las entradas.
                     $(
                         let $input = self.$input[i];
                     )+
 
+                    // Para todos los puntos
                     for point in &points {
                         let transformed_point = (self.$transformation)(point, $($input),+);
+                        // Agrega el punto transformado
                         transformed_points.push(transformed_point);
                     }
 
-                    transformations.push(transformed_points);
+                    instants.push(transformed_points);
                 }
 
-                transformations
+                instants
             }
         }
     };
