@@ -54,7 +54,8 @@ impl GeographicPoint
         let rcolat = z.acos();
         let rlon = (y / rcolat.sin()).atan2(x / rcolat.sin());
 
-        GeographicPoint::new( (90.0 - rcolat) / DEG2RAD , rlon / DEG2RAD )
+        // GeographicPoint::new( (90.0 - rcolat) / DEG2RAD , rlon / DEG2RAD )
+        GeographicPoint::new( rcolat / DEG2RAD - 90.0 , rlon / DEG2RAD )
     } 
 
     pub fn from_n_stereographic( point: Complex<f64>  ) -> GeographicPoint {
@@ -67,6 +68,35 @@ impl GeographicPoint
         let rcolat = z.acos();
         let rlon = (y / rcolat.sin()).atan2(x / rcolat.sin());
 
-        GeographicPoint::new( (rcolat - 90.0) / DEG2RAD , rlon / DEG2RAD )
+        GeographicPoint::new( 90.0 - rcolat / DEG2RAD , rlon / DEG2RAD )
     } 
+}
+
+mod test {
+    // Parametrizar tests
+    #[test]
+    fn test_n_stereographic()
+    {
+       use super::GeographicPoint;
+
+       let p = GeographicPoint::new(30.0,40.0);
+
+       let pp = GeographicPoint::from_n_stereographic(p.n_stereographic());
+
+       assert!((p.latitude - pp.latitude).abs() < 1.0e-6, "{} is not approximately equal to {}", p.latitude, pp.latitude)
+
+    }
+
+    #[test]
+    fn test_s_stereographic()
+    {
+       use super::GeographicPoint;
+
+       let p = GeographicPoint::new(-30.0,40.0);
+
+       let pp = GeographicPoint::from_s_stereographic(p.s_stereographic());
+
+       assert!((p.latitude - pp.latitude).abs() < 1.0e-6, "{} is not approximately equal to {}", p.latitude, pp.latitude)
+
+    }
 }

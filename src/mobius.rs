@@ -1,12 +1,10 @@
 use crate::geo::GeographicPoint;
 use crate::geo::DEG2RAD;
 use num_complex::Complex;
-use num_traits::Float;
-use std::f64::consts::PI;
 
 // Define a Möbius transformation struct
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct MobiusTransformation {
+pub struct MobiusTransformation {
     a: Complex<f64>,
     b: Complex<f64>,
     c: Complex<f64>,
@@ -14,7 +12,7 @@ struct MobiusTransformation {
 }
 
 impl MobiusTransformation {
-    fn from_pole(latitude: f64, longitude: f64, a: f64) -> MobiusTransformation {
+    pub fn from_pole(latitude: f64, longitude: f64, a: f64) -> MobiusTransformation {
 
         let k = Complex::<f64>::from_polar(1.0, a);
 
@@ -25,7 +23,7 @@ impl MobiusTransformation {
         MobiusTransformation::from_fixed_points(gamma1, gamma2, k)
     }
 
-    fn from_fixed_points(gamma1: Complex<f64>, gamma2: Complex<f64>, k: Complex<f64>) -> MobiusTransformation {
+    pub fn from_fixed_points(gamma1: Complex<f64>, gamma2: Complex<f64>, k: Complex<f64>) -> MobiusTransformation {
         let a = gamma1 - k * gamma2;
         let b = (k - 1.0) * gamma1 * gamma2;
         let c = 1.0 - k;
@@ -34,7 +32,7 @@ impl MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
 
-    fn from_pairs(
+    pub fn from_pairs(
         z1: Complex<f64>,
         z2: Complex<f64>,
         z3: Complex<f64>,
@@ -71,14 +69,14 @@ impl MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
 
-    fn apply(&self, z: Complex<f64>) -> Complex<f64> {
+    pub fn apply(&self, z: Complex<f64>) -> Complex<f64> {
         let numerator = self.a * z + self.b;
         let denominator = self.c * z + self.d;
 
         numerator / denominator
     }
     
-    fn add(self, other: MobiusTransformation) -> MobiusTransformation {
+    pub fn add(self, other: MobiusTransformation) -> MobiusTransformation {
         let a = self.a + other.a;
         let b = self.b + other.b;
         let c = self.c + other.c;
@@ -86,7 +84,7 @@ impl MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
 
-    fn normalizar(self) -> MobiusTransformation {
+    pub fn normalizar(self) -> MobiusTransformation {
         let n = self.a;
 
         MobiusTransformation::new( self.a / n, self.b / n,
@@ -94,7 +92,7 @@ impl MobiusTransformation {
 
     }
 
-    fn new(a: Complex<f64>, b: Complex<f64>, 
+    pub fn new(a: Complex<f64>, b: Complex<f64>, 
            c: Complex<f64>, d: Complex<f64>) -> MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
