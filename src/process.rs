@@ -82,8 +82,8 @@ fn example_transformation(
 {
     // Your transformation logic here using named inputs
     // Example logic - summing up named inputs to the point coordinates
-    let lat = point.latitude + input1;
-    let lon = point.longitude + input2;
+    let lat = point.latitude() + input1;
+    let lon = point.longitude() + input2;
 
     GeographicPoint::new(lat,lon)
 }

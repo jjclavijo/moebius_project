@@ -1,5 +1,7 @@
 use crate::geo::GeographicPoint;
 use crate::geo::DEG2RAD;
+use geo::Coord;
+use geo::Point;
 use num_complex::Complex;
 
 // Define a Möbius transformation struct
@@ -124,7 +126,7 @@ impl Add for MobiusTransformation {
 
 // Function to compute the antipodal point
 fn compute_antipodal_point(point: GeographicPoint) -> GeographicPoint {
-    let GeographicPoint {latitude, longitude} = point;
+    let Point (Coord {y:latitude, x:longitude}) = point.geometry;
     let rcolat = DEG2RAD * (90.0 - latitude);
     let rlon = DEG2RAD * longitude;
     let x = - rcolat.sin() * rlon.cos();
@@ -143,16 +145,19 @@ mod tests {
 
     #[test]
     fn test_antipodal_transformation() {
+
         let base_point = GeographicPoint {
-            latitude: 45.0,
-            longitude: 30.0,
+            geometry: Point ( Coord{
+            y: 45.0,
+            x: 30.0
+            })
         };
 
-        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude,base_point.longitude, 1.0);
+        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude(),base_point.longitude(), 1.0);
 
         let antipodal_point = compute_antipodal_point(base_point);
 
-        let mobius_transformation_a = MobiusTransformation::from_pole(antipodal_point.latitude,antipodal_point.longitude, -1.0);
+        let mobius_transformation_a = MobiusTransformation::from_pole(antipodal_point.latitude(),antipodal_point.longitude(), -1.0);
 
         // Assuming the perturbations are applied correctly, test a transformation's output
         //
@@ -187,11 +192,13 @@ mod tests {
     #[test]
     fn test_polo_vs_tres_puntos() {
         let base_point = GeographicPoint {
-            latitude: 45.0,
-            longitude: 30.0,
+            geometry: Point ( Coord{
+            y: 45.0,
+            x: 30.0
+            })
         };
 
-        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude,base_point.longitude, 1.0);
+        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude(),base_point.longitude(), 1.0);
 
         let complex_inputs : Vec<Complex<f64>> = vec![Complex::new(1.0, -4.0),
                                                     Complex::new(3.0, 4.0),
