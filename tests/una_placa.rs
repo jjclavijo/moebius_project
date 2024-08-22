@@ -27,6 +27,9 @@ fn test_placa() {
                      .map(|z| transform.apply(z))
                      .map(|z| GeographicPoint::from_s_stereographic(z)).collect();
 
+    // Se les agrega ruido aleatorio
+    //
+
     let nuevos_puntos_r: Vec<GeographicPoint> = 
         nuevos_puntos.iter().map(
             |p| {
@@ -36,9 +39,6 @@ fn test_placa() {
                 GeographicPoint::new(latitude+rdist.sample(&mut rngen)*scale,
                                      longitude+rdist.sample(&mut rngen)*scale)
             } ).collect();
-
-    // Se les agrega ruido aleatorio
-    //
 
     // Se sortean ternas de puntos
     //

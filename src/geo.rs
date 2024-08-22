@@ -9,7 +9,7 @@ use serde::Serialize;
 
 // Define a type to represent geographic points
 // pero deberia ser un Trait que se implementa para Point
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize,PartialEq)]
 pub struct GeographicPoint  {
     //pub latitude: f64,
     //pub longitude: f64,
@@ -85,6 +85,12 @@ impl GeographicPoint
         let Point (Coord {x: longitude, y:_}) = self.geometry;
         longitude
     }
+
+    pub fn dist( self: GeographicPoint, other: GeographicPoint) -> f64 {
+        let diff = self.geometry - other.geometry;
+        diff.dot(diff).sqrt()
+    }
+
 }
 
 mod test {

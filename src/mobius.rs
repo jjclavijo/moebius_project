@@ -3,6 +3,9 @@ use crate::geo::DEG2RAD;
 use geo::Coord;
 use geo::Point;
 use num_complex::Complex;
+use num_complex::ComplexFloat;
+use num_traits::One;
+use num_traits::Zero;
 
 // Define a Möbius transformation struct
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -71,6 +74,30 @@ impl MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
 
+    pub fn fixed_points(&self) -> (Complex<f64>,Complex<f64>) {
+        if self.c == Complex::zero() {
+            let p1 = Complex::one() * f64::INFINITY;
+            if self.a == self.d {
+                (p1.clone(), p1)
+            } else {
+                (p1, - self.b / (self.a - self.d))
+            }
+        } else {
+            let det = self.a * self.d - self.b * self.c;
+            let tr = self.a + self.d;
+            let discr = tr * tr - 4. * det;
+
+            let base_p = (self.a - self.d) / (2. * self.c);
+
+            if discr == Complex::zero() {
+                (base_p.clone(), base_p)
+            } else {
+                let addit = discr.sqrt() / (2. * self.c);
+                (base_p + addit, base_p - addit)
+            }
+        }
+    }
+
     pub fn apply(&self, z: Complex<f64>) -> Complex<f64> {
         let numerator = self.a * z + self.b;
         let denominator = self.c * z + self.d;
@@ -98,7 +125,7 @@ impl MobiusTransformation {
            c: Complex<f64>, d: Complex<f64>) -> MobiusTransformation {
         MobiusTransformation { a, b, c, d }
     }
-    
+
 }
 
 
@@ -240,4 +267,24 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_polo_y_vuelta() {
+        let base_point = GeographicPoint {
+            geometry: Point ( Coord{
+            y: 45.0,
+            x: 30.0
+            })
+        };
+
+        let mobius_transformation = MobiusTransformation::from_pole(base_point.latitude(),base_point.longitude(), 1.0);
+
+        let (f1,f2) = mobius_transformation.fixed_points();
+
+        let f1g = GeographicPoint::from_n_stereographic(f1);
+        let f2g = GeographicPoint::from_n_stereographic(f2);
+
+        println!("{:?}, {:?}", f1g, f2g);
+
+        assert!( (f1g.dist(base_point) < 1e12) | (f2g.dist(base_point) < 1e12));
+    }
 }
